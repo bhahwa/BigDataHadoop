@@ -1,0 +1,491 @@
+Hadoop project -by Bhavya Wadhwa
+
+Data Set Information: This data set includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family (pp. 500-525). Each species is identified as definitely edible, definitely poisonous, or of unknown edibility and not recommended. This latter class was combined with the poisonous one. The Guide clearly states that there is no simple rule for determining the edibility of a mushroom; no rule like ``leaflets three, let it be'' for Poisonous Oak and Ivy.
+
+Attribute Information:
+
+1. cap-shape: bell=b,conical=c,convex=x,flat=f, knobbed=k,sunken=s
+2. cap-surface: fibrous=f,grooves=g,scaly=y,smooth=s
+3. cap-color: brown=n,buff=b,cinnamon=c,gray=g,green=r, pink=p,purple=u,red=e,white=w,yellow=y
+4. bruises?: bruises=t,no=f
+5. odor: almond=a,anise=l,creosote=c,fishy=y,foul=f, musty=m,none=n,pungent=p,spicy=s
+6. gill-attachment: attached=a,descending=d,free=f,notched=n
+7. gill-spacing: close=c,crowded=w,distant=d
+8. gill-size: broad=b,narrow=n
+9. gill-color: black=k,brown=n,buff=b,chocolate=h,gray=g, green=r,orange=o,pink=p,purple=u,red=e, white=w,yellow=y
+10. stalk-shape: enlarging=e,tapering=t
+11. stalk-root: bulbous=b,club=c,cup=u,equal=e, rhizomorphs=z,rooted=r,missing=?
+12. stalk-surface-above-ring: fibrous=f,scaly=y,silky=k,smooth=s
+13. stalk-surface-below-ring: fibrous=f,scaly=y,silky=k,smooth=s
+14. stalk-color-above-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
+15. stalk-color-below-ring: brown=n,buff=b,cinnamon=c,gray=g,orange=o, pink=p,red=e,white=w,yellow=y
+16. veil-type: partial=p,universal=u
+17. veil-color: brown=n,orange=o,white=w,yellow=y
+18. ring-number: none=n,one=o,two=t
+19. ring-type: cobwebby=c,evanescent=e,flaring=f,large=l, none=n,pendant=p,sheathing=s,zone=z
+20. spore-print-color: black=k,brown=n,buff=b,chocolate=h,green=r, orange=o,purple=u,white=w,yellow=y
+21. population: abundant=a,clustered=c,numerous=n, scattered=s,several=v,solitary=y
+22. habitat: grasses=g,leaves=l,meadows=m,paths=p, urban=u,waste=w,woods=d
+
+## Import Data
+
+[cloudera@quickstart ~]$ ls
+cloudera-manager  eclipse                     hadoopone  parcels    workspace
+cm_api.py         edgefile.txt                hadooptwo  Pictures
+Desktop           enterprise-deployment.json  kerberos   Public
+Documents         express-deployment.json     lib        Templates
+Downloads         folder2                     Music      Videos
+[cloudera@quickstart ~]$ wget https://raw.githubusercontent.com/msivalenka/Mushroom-Dataset/master/mushrooms.csv
+--2021-08-07 23:16:22--  https://raw.githubusercontent.com/msivalenka/Mushroom-Dataset/master/mushrooms.csv
+Resolving raw.githubusercontent.com... 185.199.111.133, 185.199.110.133, 185.199.108.133, ...
+Connecting to raw.githubusercontent.com|185.199.111.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 374003 (365K) [text/plain]
+Saving to: “mushrooms.csv”
+
+100%[======================================>] 374,003     --.-K/s   in 0.06s   
+
+2021-08-07 23:16:22 (5.93 MB/s) - “mushrooms.csv” saved [374003/374003]
+
+[cloudera@quickstart ~]$ ls
+cloudera-manager  edgefile.txt                kerberos       Public
+cm_api.py         enterprise-deployment.json  lib            Templates
+Desktop           express-deployment.json     mushrooms.csv  Videos
+Documents         folder2                     Music          workspace
+Downloads         hadoopone                   parcels
+eclipse           hadooptwo                   Pictures
+[cloudera@quickstart ~]$ 
+
+
+## Trimming the header in CSV before uploading in HDFS
+
+[cloudera@quickstart ~]$ head mushrooms.csv
+class,cap-shape,cap-surface,cap-color,bruises,odor,gill-attachment,gill-spacing,gill-size,gill-color,stalk-shape,stalk-root,stalk-surface-above-ring,stalk-surface-below-ring,stalk-color-above-ring,stalk-color-below-ring,veil-type,veil-color,ring-number,ring-type,spore-print-color,population,habitat
+p,x,s,n,t,p,f,c,n,k,e,e,s,s,w,w,p,w,o,p,k,s,u
+e,x,s,y,t,a,f,c,b,k,e,c,s,s,w,w,p,w,o,p,n,n,g
+e,b,s,w,t,l,f,c,b,n,e,c,s,s,w,w,p,w,o,p,n,n,m
+p,x,y,w,t,p,f,c,n,n,e,e,s,s,w,w,p,w,o,p,k,s,u
+e,x,s,g,f,n,f,w,b,k,t,e,s,s,w,w,p,w,o,e,n,a,g
+e,x,y,y,t,a,f,c,b,n,e,c,s,s,w,w,p,w,o,p,k,n,g
+e,b,s,w,t,a,f,c,b,g,e,c,s,s,w,w,p,w,o,p,k,n,m
+e,b,y,w,t,l,f,c,b,n,e,c,s,s,w,w,p,w,o,p,n,s,m
+p,x,y,w,t,p,f,c,n,p,e,e,s,s,w,w,p,w,o,p,k,v,g
+[cloudera@quickstart ~]$ tail -8123 mushrooms.csv > mushroom12
+[cloudera@quickstart ~]$ head mushroom12
+e,x,s,y,t,a,f,c,b,k,e,c,s,s,w,w,p,w,o,p,n,n,g
+e,b,s,w,t,l,f,c,b,n,e,c,s,s,w,w,p,w,o,p,n,n,m
+p,x,y,w,t,p,f,c,n,n,e,e,s,s,w,w,p,w,o,p,k,s,u
+e,x,s,g,f,n,f,w,b,k,t,e,s,s,w,w,p,w,o,e,n,a,g
+e,x,y,y,t,a,f,c,b,n,e,c,s,s,w,w,p,w,o,p,k,n,g
+e,b,s,w,t,a,f,c,b,g,e,c,s,s,w,w,p,w,o,p,k,n,m
+e,b,y,w,t,l,f,c,b,n,e,c,s,s,w,w,p,w,o,p,n,s,m
+p,x,y,w,t,p,f,c,n,p,e,e,s,s,w,w,p,w,o,p,k,v,g
+e,b,s,y,t,a,f,c,b,g,e,c,s,s,w,w,p,w,o,p,k,s,m
+e,x,y,y,t,l,f,c,b,g,e,c,s,s,w,w,p,w,o,p,n,n,g
+[cloudera@quickstart ~]$ 
+
+## Creating path and making shell table in HIVE for uploading CSV data
+
+[cloudera@quickstart ~]$ beeline -u jdbc:hive2://localhost:10000/default -n hive-p hive
+scan complete in 3ms
+Connecting to jdbc:hive2://localhost:10000/default
+Connected to: Apache Hive (version 1.1.0-cdh5.13.0)
+Driver: Hive JDBC (version 1.1.0-cdh5.13.0)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+Beeline version 1.1.0-cdh5.13.0 by Apache Hive
+0: jdbc:hive2://localhost:10000/default> show databases;
+INFO  : Compiling command(queryId=hive_20210807234747_90e05729-3634-41bc-96e0-11a45ce8ae96): show databases
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:database_name, type:string, comment:from deserializer)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210807234747_90e05729-3634-41bc-96e0-11a45ce8ae96); Time taken: 0.089 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210807234747_90e05729-3634-41bc-96e0-11a45ce8ae96): show databases
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210807234747_90e05729-3634-41bc-96e0-11a45ce8ae96); Time taken: 0.043 seconds
+INFO  : OK
++----------------+--+
+| database_name  |
++----------------+--+
+| default        |
+| mush1          |
+| new_york       |
+| newyork1       |
++----------------+--+
+4 rows selected (0.287 seconds)
+0: jdbc:hive2://localhost:10000/default> create database mush2;
+INFO  : Compiling command(queryId=hive_20210807234747_c6aab2e7-739e-47c9-8e12-075f870a7fac): create database mush2
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20210807234747_c6aab2e7-739e-47c9-8e12-075f870a7fac); Time taken: 0.015 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210807234747_c6aab2e7-739e-47c9-8e12-075f870a7fac): create database mush2
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210807234747_c6aab2e7-739e-47c9-8e12-075f870a7fac); Time taken: 2.047 seconds
+INFO  : OK
+No rows affected (2.08 seconds)
+0: jdbc:hive2://localhost:10000/default> use mush2;
+INFO  : Compiling command(queryId=hive_20210807234747_2bf47dac-0049-4e43-9a6b-95c78d6a1300): use mush2
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20210807234747_2bf47dac-0049-4e43-9a6b-95c78d6a1300); Time taken: 0.068 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210807234747_2bf47dac-0049-4e43-9a6b-95c78d6a1300): use mush2
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210807234747_2bf47dac-0049-4e43-9a6b-95c78d6a1300); Time taken: 0.013 seconds
+INFO  : OK
+No rows affected (0.099 seconds)
+
+0: jdbc:hive2://localhost:10000/default> create table mushroom1(class string,cap_shape string,cap_surface string,cap_color string,bruises string,odor string,gill_attachment string,gill_spacing string,gill_size string, gill_color string,stalk_shape string,stalk_root string,stalk_surface_above_ring string,stalk_surface_below_ring string,stalk_color_above_ring string, stalk_color_below_ring string,veil_type string,veil_color string,ring_number string,ring_type string,spore_print_color string,population string, habitat string) row format delimited fields terminated by ',';
+INFO  : Compiling command(queryId=hive_20210808002626_1ca48ba0-bdab-45d2-b7fe-ded47b6b1a4c): create table mushroom1(class string,cap_shape string,cap_surface string,cap_color string,bruises string,odor string,gill_attachment string,gill_spacing string,gill_size string, gill_color string,stalk_shape string,stalk_root string,stalk_surface_above_ring string,stalk_surface_below_ring string,stalk_color_above_ring string, stalk_color_below_ring string,veil_type string,veil_color string,ring_number string,ring_type string,spore_print_color string,population string, habitat string) row format delimited fields terminated by ','
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808002626_1ca48ba0-bdab-45d2-b7fe-ded47b6b1a4c); Time taken: 0.207 seconds
+
+0: jdbc:hive2://localhost:10000/default> show tables;
+INFO  : Compiling command(queryId=hive_20210808003030_6968a9e9-3cee-4aba-99e6-f659f9616262): show tables
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:tab_name, type:string, comment:from deserializer)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808003030_6968a9e9-3cee-4aba-99e6-f659f9616262); Time taken: 0.007 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808003030_6968a9e9-3cee-4aba-99e6-f659f9616262): show tables
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210808003030_6968a9e9-3cee-4aba-99e6-f659f9616262); Time taken: 0.045 seconds
+INFO  : OK
++------------+--+
+|  tab_name  |
++------------+--+
+| mushroom1  |
++------------+--+
+1 row selected (0.091 seconds)
+0: jdbc:hive2://localhost:10000/default> 
+
+## Uploading data in the table on HDFS
+
+[cloudera@quickstart ~]$ hdfs dfs -put  mushroom12 /user/hive/warehouse/mush2.db/mushroom1
+
+## Checking the data with the select query
+
+[cloudera@quickstart ~]$ beeline -u jdbc:hive2://localhost:10000/default -n hive-p hive
+scan complete in 3ms
+Connecting to jdbc:hive2://localhost:10000/default
+Connected to: Apache Hive (version 1.1.0-cdh5.13.0)
+Driver: Hive JDBC (version 1.1.0-cdh5.13.0)
+Transaction isolation: TRANSACTION_REPEATABLE_READ
+Beeline version 1.1.0-cdh5.13.0 by Apache Hive
+
+0: jdbc:hive2://localhost:10000/default> use mush2;
+INFO  : Compiling command(queryId=hive_20210808004242_93f801f7-3b3e-42af-bc4e-08e9e97fd406): use mush2
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808004242_93f801f7-3b3e-42af-bc4e-08e9e97fd406); Time taken: 0.128 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808004242_93f801f7-3b3e-42af-bc4e-08e9e97fd406): use mush2
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210808004242_93f801f7-3b3e-42af-bc4e-08e9e97fd406); Time taken: 0.019 seconds
+INFO  : OK
+No rows affected (0.226 seconds)
+
+0: jdbc:hive2://localhost:10000/default> select * from mushroom1 limit 10;
+INFO  : Compiling command(queryId=hive_20210808004242_6049c743-53af-43ae-84dc-8ad682030fa6): select * from mushroom1 limit 10
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:mushroom1.class, type:string, comment:null), FieldSchema(name:mushroom1.cap_shape, type:string, comment:null), FieldSchema(name:mushroom1.cap_surface, type:string, comment:null), FieldSchema(name:mushroom1.cap_color, type:string, comment:null), FieldSchema(name:mushroom1.bruises, type:string, comment:null), FieldSchema(name:mushroom1.odor, type:string, comment:null), FieldSchema(name:mushroom1.gill_attachment, type:string, comment:null), FieldSchema(name:mushroom1.gill_spacing, type:string, comment:null), FieldSchema(name:mushroom1.gill_size, type:string, comment:null), FieldSchema(name:mushroom1.gill_color, type:string, comment:null), FieldSchema(name:mushroom1.stalk_shape, type:string, comment:null), FieldSchema(name:mushroom1.stalk_root, type:string, comment:null), FieldSchema(name:mushroom1.stalk_surface_above_ring, type:string, comment:null), FieldSchema(name:mushroom1.stalk_surface_below_ring, type:string, comment:null), FieldSchema(name:mushroom1.stalk_color_above_ring, type:string, comment:null), FieldSchema(name:mushroom1.stalk_color_below_ring, type:string, comment:null), FieldSchema(name:mushroom1.veil_type, type:string, comment:null), FieldSchema(name:mushroom1.veil_color, type:string, comment:null), FieldSchema(name:mushroom1.ring_number, type:string, comment:null), FieldSchema(name:mushroom1.ring_type, type:string, comment:null), FieldSchema(name:mushroom1.spore_print_color, type:string, comment:null), FieldSchema(name:mushroom1.population, type:string, comment:null), FieldSchema(name:mushroom1.habitat, type:string, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808004242_6049c743-53af-43ae-84dc-8ad682030fa6); Time taken: 0.82 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808004242_6049c743-53af-43ae-84dc-8ad682030fa6): select * from mushroom1 limit 10
+INFO  : Completed executing command(queryId=hive_20210808004242_6049c743-53af-43ae-84dc-8ad682030fa6); Time taken: 0.0 seconds
+INFO  : OK
++------------------+----------------------+------------------------+----------------------+--------------------+-----------------+----------------------------+-------------------------+----------------------+-----------------------+------------------------+-----------------------+-------------------------------------+-------------------------------------+-----------------------------------+-----------------------------------+----------------------+-----------------------+------------------------+----------------------+------------------------------+-----------------------+--------------------+--+
+| mushroom1.class  | mushroom1.cap_shape  | mushroom1.cap_surface  | mushroom1.cap_color  | mushroom1.bruises  | mushroom1.odor  | mushroom1.gill_attachment  | mushroom1.gill_spacing  | mushroom1.gill_size  | mushroom1.gill_color  | mushroom1.stalk_shape  | mushroom1.stalk_root  | mushroom1.stalk_surface_above_ring  | mushroom1.stalk_surface_below_ring  | mushroom1.stalk_color_above_ring  | mushroom1.stalk_color_below_ring  | mushroom1.veil_type  | mushroom1.veil_color  | mushroom1.ring_number  | mushroom1.ring_type  | mushroom1.spore_print_color  | mushroom1.population  | mushroom1.habitat  |
++------------------+----------------------+------------------------+----------------------+--------------------+-----------------+----------------------------+-------------------------+----------------------+-----------------------+------------------------+-----------------------+-------------------------------------+-------------------------------------+-----------------------------------+-----------------------------------+----------------------+-----------------------+------------------------+----------------------+------------------------------+-----------------------+--------------------+--+
+| e                | x                    | s                      | y                    | t                  | a               | f                          | c                       | b                    | k                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | n                            | n                     | g                  |
+| e                | b                    | s                      | w                    | t                  | l               | f                          | c                       | b                    | n                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | n                            | n                     | m                  |
+| p                | x                    | y                      | w                    | t                  | p               | f                          | c                       | n                    | n                     | e                      | e                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | k                            | s                     | u                  |
+| e                | x                    | s                      | g                    | f                  | n               | f                          | w                       | b                    | k                     | t                      | e                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | e                    | n                            | a                     | g                  |
+| e                | x                    | y                      | y                    | t                  | a               | f                          | c                       | b                    | n                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | k                            | n                     | g                  |
+| e                | b                    | s                      | w                    | t                  | a               | f                          | c                       | b                    | g                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | k                            | n                     | m                  |
+| e                | b                    | y                      | w                    | t                  | l               | f                          | c                       | b                    | n                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | n                            | s                     | m                  |
+| p                | x                    | y                      | w                    | t                  | p               | f                          | c                       | n                    | p                     | e                      | e                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | k                            | v                     | g                  |
+| e                | b                    | s                      | y                    | t                  | a               | f                          | c                       | b                    | g                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | k                            | s                     | m                  |
+| e                | x                    | y                      | y                    | t                  | l               | f                          | c                       | b                    | g                     | e                      | c                     | s                                   | s                                   | w                                 | w                                 | p                    | w                     | o                      | p                    | n                            | n                     | g                  |
++------------------+----------------------+------------------------+----------------------+--------------------+-----------------+----------------------------+-------------------------+----------------------+-----------------------+------------------------+-----------------------+-------------------------------------+-------------------------------------+-----------------------------------+-----------------------------------+----------------------+-----------------------+------------------------+----------------------+------------------------------+-----------------------+--------------------+--+
+10 rows selected (1.131 seconds)
+ 
+
+## Analysis 
+
+0: jdbc:hive2://localhost:10000/default> select class,count(*) from mushroom1 group by class;
+INFO  : Compiling command(queryId=hive_20210808013535_3255c2df-5f52-47f0-afb5-51d6990581c6): select class,count(*) from mushroom1 group by class
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:class, type:string, comment:null), FieldSchema(name:_c1, type:bigint, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808013535_3255c2df-5f52-47f0-afb5-51d6990581c6); Time taken: 0.159 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808013535_3255c2df-5f52-47f0-afb5-51d6990581c6): select class,count(*) from mushroom1 group by class
+INFO  : Query ID = hive_20210808013535_3255c2df-5f52-47f0-afb5-51d6990581c6
+INFO  : Total jobs = 1
+INFO  : Launching Job 1 out of 1
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Number of reduce tasks not specified. Estimated from input data size: 1
+INFO  : In order to change the average load for a reducer (in bytes):
+INFO  :   set hive.exec.reducers.bytes.per.reducer=<number>
+INFO  : In order to limit the maximum number of reducers:
+INFO  :   set hive.exec.reducers.max=<number>
+INFO  : In order to set a constant number of reducers:
+INFO  :   set mapreduce.job.reduces=<number>
+INFO  : Starting Job = job_1628399790768_0002, Tracking URL = http://quickstart.cloudera:8088/proxy/application_1628399790768_0002/
+INFO  : Kill Command = /usr/lib/hadoop/bin/hadoop job  -kill job_1628399790768_0002
+INFO  : Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+INFO  : 2021-08-08 01:35:47,932 Stage-1 map = 0%,  reduce = 0%
+INFO  : 2021-08-08 01:35:56,862 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 2.28 sec
+INFO  : 2021-08-08 01:36:08,087 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 5.08 sec
+INFO  : MapReduce Total cumulative CPU time: 5 seconds 80 msec
+INFO  : Ended Job = job_1628399790768_0002
+INFO  : MapReduce Jobs Launched: 
+INFO  : Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 5.08 sec   HDFS Read: 384250 HDFS Write: 14 SUCCESS
+INFO  : Total MapReduce CPU Time Spent: 5 seconds 80 msec
+INFO  : Completed executing command(queryId=hive_20210808013535_3255c2df-5f52-47f0-afb5-51d6990581c6); Time taken: 39.235 seconds
+INFO  : OK
++--------+-------+--+
+| class  |  _c1  |
++--------+-------+--+
+| e      | 4208  |
+| p      | 3915  |
++--------+-------+--+
+2 rows selected (39.45 seconds)
+0: jdbc:hive2://localhost:10000/default> 
+
+->>(e - edible, p - poisonous)<<
+
+
+## Partioning (done on the basis of class {edible, poisonous}) 
+
+0: jdbc:hive2://localhost:10000/default> set hive.exec.dynamic.partition = true;
+No rows affected (0.011 seconds)
+
+0: jdbc:hive2://localhost:10000/default> set hive.exec.dynamic.partition.mode = nonstrict;
+No rows affected (0.004 seconds)
+
+0: jdbc:hive2://localhost:10000/default> create table mushroom_p(cap_shape string,cap_surface string,cap_color string,bruises string,odor string,gill_attachment string,gill_spacing string,gill_size string, gill_color string,stalk_shape string,stalk_root string,stalk_surface_above_ring string,stalk_surface_below_ring string,stalk_color_above_ring string, stalk_color_below_ring string,veil_type string,veil_color string,ring_number string,ring_type string,spore_print_color string,population string, habitat string) partitioned by (class string) row format delimited fields terminated by ',';
+INFO  : Compiling command(queryId=hive_20210808031212_71994acf-e605-453d-978f-8005609442c6): create table mushroom_p(cap_shape string,cap_surface string,cap_color string,bruises string,odor string,gill_attachment string,gill_spacing string,gill_size string, gill_color string,stalk_shape string,stalk_root string,stalk_surface_above_ring string,stalk_surface_below_ring string,stalk_color_above_ring string, stalk_color_below_ring string,veil_type string,veil_color string,ring_number string,ring_type string,spore_print_color string,population string, habitat string) partitioned by (class string) row format delimited fields terminated by ','
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808031212_71994acf-e605-453d-978f-8005609442c6); Time taken: 0.019 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808031212_71994acf-e605-453d-978f-8005609442c6): create table mushroom_p(cap_shape string,cap_surface string,cap_color string,bruises string,odor string,gill_attachment string,gill_spacing string,gill_size string, gill_color string,stalk_shape string,stalk_root string,stalk_surface_above_ring string,stalk_surface_below_ring string,stalk_color_above_ring string, stalk_color_below_ring string,veil_type string,veil_color string,ring_number string,ring_type string,spore_print_color string,population string, habitat string) partitioned by (class string) row format delimited fields terminated by ','
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210808031212_71994acf-e605-453d-978f-8005609442c6); Time taken: 0.282 seconds
+INFO  : OK
+No rows affected (0.359 seconds)
+
+0: jdbc:hive2://localhost:10000/default> show partitions mushroom_p;
+INFO  : Compiling command(queryId=hive_20210808031616_71b0a2b1-1e1d-4acd-864c-5be4c9f9519d): show partitions mushroom_p
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:partition, type:string, comment:from deserializer)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808031616_71b0a2b1-1e1d-4acd-864c-5be4c9f9519d); Time taken: 0.131 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808031616_71b0a2b1-1e1d-4acd-864c-5be4c9f9519d): show partitions mushroom_p
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210808031616_71b0a2b1-1e1d-4acd-864c-5be4c9f9519d); Time taken: 0.105 seconds
+INFO  : OK
++------------+--+
+| partition  |
++------------+--+
++------------+--+
+No rows selected (0.277 seconds)
+ 
+0: jdbc:hive2://localhost:10000/default> insert into mushroom_p partition(class) select cap_shape,cap_surface,cap_color,bruises,odor,gill_attachment,gill_spacing,gill_size,gill_color,stalk_shape, stalk_root,stalk_surface_above_ring,stalk_surface_below_ring,stalk_color_above_ring,stalk_color_below_ring, veil_type,veil_color,ring_number,ring_type,spore_print_color,population,habitat, class from mushroom1;
+INFO  : Compiling command(queryId=hive_20210808032424_ead9cb52-f063-47ec-a94f-e70a84539cca): insert into mushroom_p partition(class) select cap_shape,cap_surface,cap_color,bruises,odor,gill_attachment,gill_spacing,gill_size,gill_color,stalk_shape, stalk_root,stalk_surface_above_ring,stalk_surface_below_ring,stalk_color_above_ring,stalk_color_below_ring, veil_type,veil_color,ring_number,ring_type,spore_print_color,population,habitat, class from mushroom1
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:cap_shape, type:string, comment:null), FieldSchema(name:cap_surface, type:string, comment:null), FieldSchema(name:cap_color, type:string, comment:null), FieldSchema(name:bruises, type:string, comment:null), FieldSchema(name:odor, type:string, comment:null), FieldSchema(name:gill_attachment, type:string, comment:null), FieldSchema(name:gill_spacing, type:string, comment:null), FieldSchema(name:gill_size, type:string, comment:null), FieldSchema(name:gill_color, type:string, comment:null), FieldSchema(name:stalk_shape, type:string, comment:null), FieldSchema(name:stalk_root, type:string, comment:null), FieldSchema(name:stalk_surface_above_ring, type:string, comment:null), FieldSchema(name:stalk_surface_below_ring, type:string, comment:null), FieldSchema(name:stalk_color_above_ring, type:string, comment:null), FieldSchema(name:stalk_color_below_ring, type:string, comment:null), FieldSchema(name:veil_type, type:string, comment:null), FieldSchema(name:veil_color, type:string, comment:null), FieldSchema(name:ring_number, type:string, comment:null), FieldSchema(name:ring_type, type:string, comment:null), FieldSchema(name:spore_print_color, type:string, comment:null), FieldSchema(name:population, type:string, comment:null), FieldSchema(name:habitat, type:string, comment:null), FieldSchema(name:class, type:string, comment:null)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808032424_ead9cb52-f063-47ec-a94f-e70a84539cca); Time taken: 0.418 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808032424_ead9cb52-f063-47ec-a94f-e70a84539cca): insert into mushroom_p partition(class) select cap_shape,cap_surface,cap_color,bruises,odor,gill_attachment,gill_spacing,gill_size,gill_color,stalk_shape, stalk_root,stalk_surface_above_ring,stalk_surface_below_ring,stalk_color_above_ring,stalk_color_below_ring, veil_type,veil_color,ring_number,ring_type,spore_print_color,population,habitat, class from mushroom1
+INFO  : Query ID = hive_20210808032424_ead9cb52-f063-47ec-a94f-e70a84539cca
+INFO  : Total jobs = 3
+INFO  : Launching Job 1 out of 3
+INFO  : Starting task [Stage-1:MAPRED] in serial mode
+INFO  : Number of reduce tasks is set to 0 since there's no reduce operator
+INFO  : Starting Job = job_1628399790768_0003, Tracking URL = http://quickstart.cloudera:8088/proxy/application_1628399790768_0003/
+INFO  : Kill Command = /usr/lib/hadoop/bin/hadoop job  -kill job_1628399790768_0003
+INFO  : Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 0
+INFO  : 2021-08-08 03:25:04,860 Stage-1 map = 0%,  reduce = 0%
+INFO  : 2021-08-08 03:25:17,013 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 4.55 sec
+INFO  : MapReduce Total cumulative CPU time: 4 seconds 550 msec
+INFO  : Ended Job = job_1628399790768_0003
+INFO  : Starting task [Stage-7:CONDITIONAL] in serial mode
+INFO  : Stage-4 is selected by condition resolver.
+INFO  : Stage-3 is filtered out by condition resolver.
+INFO  : Stage-5 is filtered out by condition resolver.
+INFO  : Starting task [Stage-4:MOVE] in serial mode
+INFO  : Moving data to: hdfs://quickstart.cloudera:8020/user/hive/warehouse/mush2.db/mushroom_p/.hive-staging_hive_2021-08-08_03-24-50_498_7778073064325353177-3/-ext-10000 from hdfs://quickstart.cloudera:8020/user/hive/warehouse/mush2.db/mushroom_p/.hive-staging_hive_2021-08-08_03-24-50_498_7778073064325353177-3/-ext-10002
+INFO  : Starting task [Stage-0:MOVE] in serial mode
+INFO  : Loading data to table mush2.mushroom_p partition (class=null) from hdfs://quickstart.cloudera:8020/user/hive/warehouse/mush2.db/mushroom_p/.hive-staging_hive_2021-08-08_03-24-50_498_7778073064325353177-3/-ext-10000
+INFO  : 	 Time taken for load dynamic partitions : 980
+INFO  : 	Loading partition {class=p}
+INFO  : 	Loading partition {class=e}
+INFO  : 	 Time taken for adding to write entity : 6
+INFO  : Starting task [Stage-2:STATS] in serial mode
+INFO  : Partition mush2.mushroom_p{class=e} stats: [numFiles=1, numRows=4208, totalSize=185152, rawDataSize=180944]
+INFO  : Partition mush2.mushroom_p{class=p} stats: [numFiles=1, numRows=3915, totalSize=172260, rawDataSize=168345]
+INFO  : MapReduce Jobs Launched: 
+INFO  : Stage-Stage-1: Map: 1   Cumulative CPU: 4.55 sec   HDFS Read: 381764 HDFS Write: 357547 SUCCESS
+INFO  : Total MapReduce CPU Time Spent: 4 seconds 550 msec
+INFO  : Completed executing command(queryId=hive_20210808032424_ead9cb52-f063-47ec-a94f-e70a84539cca); Time taken: 29.739 seconds
+INFO  : OK
+No rows affected (30.205 seconds)
+0: jdbc:hive2://localhost:10000/default> show partitions mushroom_p;
+INFO  : Compiling command(queryId=hive_20210808032525_0aa84207-db14-40aa-b43d-2da3e6354855): show partitions mushroom_p
+INFO  : Semantic Analysis Completed
+INFO  : Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:partition, type:string, comment:from deserializer)], properties:null)
+INFO  : Completed compiling command(queryId=hive_20210808032525_0aa84207-db14-40aa-b43d-2da3e6354855); Time taken: 0.149 seconds
+INFO  : Concurrency mode is disabled, not creating a lock manager
+INFO  : Executing command(queryId=hive_20210808032525_0aa84207-db14-40aa-b43d-2da3e6354855): show partitions mushroom_p
+INFO  : Starting task [Stage-0:DDL] in serial mode
+INFO  : Completed executing command(queryId=hive_20210808032525_0aa84207-db14-40aa-b43d-2da3e6354855); Time taken: 0.093 seconds
+INFO  : OK
++------------+--+
+| partition  |
++------------+--+
+| class=e    |
+| class=p    |
++------------+--+
+2 rows selected (0.285 seconds)
+
+## SQOOP Export
+
+[cloudera@quickstart ~]$ sqoop export --connect jdbc:mysql://127.0.0.1:3306/mushrooms --username root --password cloudera --table mushroom1 --export-dir /user/hive/warehouse/mush2.db/mushroom1 ;
+Warning: /usr/lib/sqoop/../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+21/08/08 05:47:25 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6-cdh5.13.0
+21/08/08 05:47:25 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
+21/08/08 05:47:25 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
+21/08/08 05:47:25 INFO tool.CodeGenTool: Beginning code generation
+21/08/08 05:47:26 INFO manager.SqlManager: Executing SQL statement: SELECT t.* FROM `mushroom1` AS t LIMIT 1
+21/08/08 05:47:26 INFO manager.SqlManager: Executing SQL statement: SELECT t.* FROM `mushroom1` AS t LIMIT 1
+21/08/08 05:47:26 INFO orm.CompilationManager: HADOOP_MAPRED_HOME is /usr/lib/hadoop-mapreduce
+Note: /tmp/sqoop-cloudera/compile/a1b07e75b031b5c088b61b07c95ba336/mushroom1.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+21/08/08 05:47:30 INFO orm.CompilationManager: Writing jar file: /tmp/sqoop-cloudera/compile/a1b07e75b031b5c088b61b07c95ba336/mushroom1.jar
+21/08/08 05:47:30 INFO mapreduce.ExportJobBase: Beginning export of mushroom1
+21/08/08 05:47:30 INFO Configuration.deprecation: mapred.job.tracker is deprecated. Instead, use mapreduce.jobtracker.address
+21/08/08 05:47:31 INFO Configuration.deprecation: mapred.jar is deprecated. Instead, use mapreduce.job.jar
+21/08/08 05:47:32 INFO Configuration.deprecation: mapred.reduce.tasks.speculative.execution is deprecated. Instead, use mapreduce.reduce.speculative
+21/08/08 05:47:33 INFO Configuration.deprecation: mapred.map.tasks.speculative.execution is deprecated. Instead, use mapreduce.map.speculative
+21/08/08 05:47:33 INFO Configuration.deprecation: mapred.map.tasks is deprecated. Instead, use mapreduce.job.maps
+21/08/08 05:47:33 INFO client.RMProxy: Connecting to ResourceManager at /0.0.0.0:8032
+21/08/08 05:47:34 WARN hdfs.DFSClient: DataStreamer Exception
+java.nio.channels.ClosedByInterruptException
+	at java.nio.channels.spi.AbstractInterruptibleChannel.end(AbstractInterruptibleChannel.java:202)
+	at sun.nio.ch.SocketChannelImpl.write(SocketChannelImpl.java:496)
+	at org.apache.hadoop.net.SocketOutputStream$Writer.performIO(SocketOutputStream.java:63)
+	at org.apache.hadoop.net.SocketIOWithTimeout.doIO(SocketIOWithTimeout.java:142)
+	at org.apache.hadoop.net.SocketOutputStream.write(SocketOutputStream.java:159)
+	at org.apache.hadoop.net.SocketOutputStream.write(SocketOutputStream.java:117)
+	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+	at java.io.DataOutputStream.flush(DataOutputStream.java:123)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.run(DFSOutputStream.java:856)
+21/08/08 05:47:34 WARN hdfs.DFSClient: Caught exception 
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Thread.join(Thread.java:1281)
+	at java.lang.Thread.join(Thread.java:1355)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.closeResponder(DFSOutputStream.java:967)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.endBlock(DFSOutputStream.java:705)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.run(DFSOutputStream.java:894)
+21/08/08 05:47:36 INFO input.FileInputFormat: Total input paths to process : 1
+21/08/08 05:47:36 INFO input.FileInputFormat: Total input paths to process : 1
+21/08/08 05:47:36 WARN hdfs.DFSClient: Caught exception 
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Thread.join(Thread.java:1281)
+	at java.lang.Thread.join(Thread.java:1355)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.closeResponder(DFSOutputStream.java:967)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.endBlock(DFSOutputStream.java:705)
+	at org.apache.hadoop.hdfs.DFSOutputStream$DataStreamer.run(DFSOutputStream.java:894)
+21/08/08 05:47:36 INFO mapreduce.JobSubmitter: number of splits:4
+21/08/08 05:47:36 INFO Configuration.deprecation: mapred.map.tasks.speculative.execution is deprecated. Instead, use mapreduce.map.speculative
+21/08/08 05:47:37 INFO mapreduce.JobSubmitter: Submitting tokens for job: job_1628399790768_0005
+21/08/08 05:47:38 INFO impl.YarnClientImpl: Submitted application application_1628399790768_0005
+21/08/08 05:47:38 INFO mapreduce.Job: The url to track the job: http://quickstart.cloudera:8088/proxy/application_1628399790768_0005/
+21/08/08 05:47:38 INFO mapreduce.Job: Running job: job_1628399790768_0005
+21/08/08 05:47:53 INFO mapreduce.Job: Job job_1628399790768_0005 running in uber mode : false
+21/08/08 05:47:53 INFO mapreduce.Job:  map 0% reduce 0%
+21/08/08 05:51:36 INFO mapreduce.Job:  map 25% reduce 0%
+21/08/08 05:51:43 INFO mapreduce.Job:  map 82% reduce 0%
+21/08/08 05:51:44 INFO mapreduce.Job:  map 93% reduce 0%
+21/08/08 05:51:50 INFO mapreduce.Job:  map 100% reduce 0%
+21/08/08 05:51:55 INFO mapreduce.Job: Job job_1628399790768_0005 completed successfully
+21/08/08 05:51:55 INFO mapreduce.Job: Counters: 30
+	File System Counters
+		FILE: Number of bytes read=0
+		FILE: Number of bytes written=685120
+		FILE: Number of read operations=0
+		FILE: Number of large read operations=0
+		FILE: Number of write operations=0
+		HDFS: Number of bytes read=390802
+		HDFS: Number of bytes written=0
+		HDFS: Number of read operations=19
+		HDFS: Number of large read operations=0
+		HDFS: Number of write operations=0
+	Job Counters 
+		Launched map tasks=4
+		Data-local map tasks=4
+		Total time spent by all maps in occupied slots (ms)=917489
+		Total time spent by all reduces in occupied slots (ms)=0
+		Total time spent by all map tasks (ms)=917489
+		Total vcore-milliseconds taken by all map tasks=917489
+		Total megabyte-milliseconds taken by all map tasks=939508736
+	Map-Reduce Framework
+		Map input records=8123
+		Map output records=8123
+		Input split bytes=746
+		Spilled Records=0
+		Failed Shuffles=0
+		Merged Map outputs=0
+		GC time elapsed (ms)=10880
+		CPU time spent (ms)=25820
+		Physical memory (bytes) snapshot=683474944
+		Virtual memory (bytes) snapshot=6251393024
+		Total committed heap usage (bytes)=891813888
+	File Input Format Counters 
+		Bytes Read=0
+	File Output Format Counters 
+		Bytes Written=0
+21/08/08 05:51:55 INFO mapreduce.ExportJobBase: Transferred 381.6426 KB in 262.6615 seconds (1.453 KB/sec)
+21/08/08 05:51:55 INFO mapreduce.ExportJobBase: Exported 8123 records.
+[cloudera@quickstart ~]$ mysql -u root -pclouderaWelcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 187
+Server version: 5.1.73 Source distribution
+
+Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> use mushrooms;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> select * from mushroom1 limit 10;
++-------+-----------+-------------+-----------+---------+------+-----------------+--------------+-----------+------------+-------------+------------+--------------------------+--------------------------+------------------------+------------------------+-----------+------------+-------------+-----------+-------------------+------------+---------+
+| class | cap_shape | cap_surface | cap_color | bruises | odor | gill_attachment | gill_spacing | gill_size | gill_color | stalk_shape | stalk_root | stalk_surface_above_ring | stalk_surface_below_ring | stalk_color_above_ring | stalk_color_below_ring | veil_type | veil_color | ring_number | ring_type | spore_print_color | population | habitat |
++-------+-----------+-------------+-----------+---------+------+-----------------+--------------+-----------+------------+-------------+------------+--------------------------+--------------------------+------------------------+------------------------+-----------+------------+-------------+-----------+-------------------+------------+---------+
+| p     | f         | y           | y         | f       | f    | f               | c            | b         | p          | e           | b          | k                        | k                        | b                      | p                      | p         | w          | o           | l         | h                 | y          | d       |
+| p     | x         | f           | y         | f       | f    | f               | c            | b         | p          | e           | b          | k                        | k                        | b                      | n                      | p         | w          | o           | l         | h                 | y          | g       |
+| p     | x         | y           | g         | f       | f    | f               | c            | b         | g          | e           | b          | k                        | k                        | n                      | p                      | p         | w          | o           | l         | h                 | v          | d       |
+| p     | f         | f           | g         | f       | f    | f               | c            | b         | g          | e           | b          | k                        | k                        | n                      | b                      | p         | w          | o           | l         | h                 | y          | d       |
+| p     | f         | f           | y         | f       | f    | f               | c            | b         | g          | e           | b          | k                        | k                        | p                      | n                      | p         | w          | o           | l         | h                 | y          | p       |
+| e     | f         | y           | g         | t       | n    | f               | c            | b         | w          | t           | b          | s                        | s                        | p                      | p                      | p         | w          | o           | p         | n                 | y          | d       |
+| p     | x         | y           | g         | f       | f    | f               | c            | b         | p          | e           | b          | k                        | k                        | b                      | p                      | p         | w          | o           | l         | h                 | v          | p       |
+| p     | x         | y           | y         | f       | f    | f               | c            | b         | h          | e           | b          | k                        | k                        | n                      | n                      | p         | w          | o           | l         | h                 | v          | p       |
+| p     | f         | f           | g         | f       | f    | f               | c            | b         | p          | e           | b          | k                        | k                        | b                      | n                      | p         | w          | o           | l         | h                 | v          | p       |
+| p     | f         | f           | y         | f       | f    | f               | c            | b         | p          | e           | b          | k                        | k                        | b                      | n                      | p         | w          | o           | l         | h                 | y          | p       |
++-------+-----------+-------------+-----------+---------+------+-----------------+--------------+-----------+------------+-------------+------------+--------------------------+--------------------------+------------------------+------------------------+-----------+------------+-------------+-----------+-------------------+------------+---------+
+10 rows in set (0.01 sec)
+
+
+THANK YOU!!!!!!
